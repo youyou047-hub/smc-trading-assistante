@@ -1,0 +1,95 @@
+# ============================================================
+# Professional AI Trading Analysis System - Configuration
+# ============================================================
+# This file contains all configurable settings for the system.
+# Modify values here without changing source code.
+# ============================================================
+
+# --- Trading Symbols & Timeframes ---
+trading:
+  symbols:
+    - "BTCUSDT"
+  timeframes:
+    higher: "1h"       # Higher timeframe for trend determination
+    lower: "15m"       # Lower timeframe for entry confirmation
+  scan_interval_seconds: 60  # How often to scan (in seconds)
+
+# --- Binance API ---
+binance:
+  base_url: "https://data-api.binance.vision/api/v3"
+  # Alternative endpoints (uncomment if needed):
+  # base_url: "https://api.binance.com/api/v3"
+  # base_url: "https://api.binance.us/api/v3"
+  kline_limit: 500  # Number of candles to fetch per request
+
+# --- Confidence Scoring Weights (must sum to 100) ---
+scoring:
+  weights:
+    market_structure_alignment: 20
+    liquidity_sweep: 20
+    bos_choch_confirmation: 15
+    fair_value_gap: 15
+    fresh_order_block: 10
+    premium_discount_zone: 5
+    confirmation_candle: 5
+    trading_session_quality: 5
+    news_filter: 5
+  thresholds:
+    ignore_below: 70        # Below 70: Ignore completely
+    record_only_min: 70     # 70-79: Record internally for statistics only
+    high_probability_min: 80  # 80-89: Send High Probability Alert
+    premium_min: 90          # 90-100: Send Premium Institutional Setup Alert
+
+# --- Telegram Alert Settings ---
+telegram:
+  enabled: true
+  bot_token: "YOUR_BOT_TOKEN_HERE"
+  chat_id: "YOUR_CHAT_ID_HERE"
+
+# --- Economic News Filter ---
+news_filter:
+  enabled: true
+  buffer_minutes: 30  # Minimum buffer before high-impact events
+  high_impact_events:
+    - "CPI"
+    - "PPI"
+    - "NFP"
+    - "FOMC"
+    - "Interest Rate Decision"
+    - "Powell Speech"
+    - "GDP"
+    - "Unemployment Claims"
+
+# --- Trading Sessions (UTC) ---
+sessions:
+  timezone: "UTC"
+  london:
+    start: "08:00"
+    end: "16:00"
+  new_york:
+    start: "13:00"
+    end: "21:00"
+  asian:
+    start: "00:00"
+    end: "08:00"
+  # Session quality multipliers
+  quality:
+    london: 1.0
+    new_york: 1.0
+    overlap: 1.0     # London-NY overlap (13:00-16:00 UTC)
+    asian: 0.7
+    off_session: 0.5
+
+# --- Logging ---
+logging:
+  level: "INFO"
+  file: "logs/trading_assistant.log"
+  max_bytes: 10485760  # 10 MB
+  backup_count: 5
+  stats_file: "logs/stats.json"
+
+# --- Chart Generation ---
+charts:
+  output_dir: "charts"
+  theme: "dark"
+  figscale: 1.5
