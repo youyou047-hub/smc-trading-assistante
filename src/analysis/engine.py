@@ -171,7 +171,7 @@ def _analyze_single_timeframe(
 
     # ── 2. Liquidity ──
     df = find_equal_highs_lows(df)
-    df = find_liquidity_sweeps(df)
+    ddf, liquidity_sweeps = find_liquidity_sweeps(df) 
 
     # ── 3. Fair Value Gaps ──
     df = find_fair_value_gaps(df)
