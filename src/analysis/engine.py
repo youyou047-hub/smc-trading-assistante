@@ -33,8 +33,8 @@ import pandas as pd
 # Import V1 analysis sub-modules (they operate on DataFrames and add columns)
 from src.analysis.market_structure import (
     find_swing_points,
-    identify_market_structure,
-    find_bos_choch,
+    analyze_market_structure,
+    
 )
 from src.analysis.liquidity import find_equal_highs_lows, find_liquidity_sweeps
 from src.analysis.fvg import find_fair_value_gaps, track_fvg_fill
@@ -165,8 +165,9 @@ def _analyze_single_timeframe(
     # ── 1. Market Structure ──
     swing_window = cfg.get("market_structure", {}).get("swing_window", 5)
     df = find_swing_points(df, window=swing_window)
-    df = identify_market_structure(df)
-    df = find_bos_choch(df)
+    result = analyze_market_structure(df)
+    df = result["df"]
+   
 
     # ── 2. Liquidity ──
     df = find_equal_highs_lows(df)
