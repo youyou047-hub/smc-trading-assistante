@@ -559,7 +559,7 @@ def find_breaker_blocks(
                     df.loc[df.index[i], "bearish_breaker"] = True
                     df.loc[df.index[i], "breaker_price"] = last_high
 
-    return df
+    return df.copy()
 
 
 def find_mitigation_blocks(
@@ -608,7 +608,7 @@ def find_mitigation_blocks(
                 if df["close"].iloc[i] < df["high"].iloc[i - 3]:
                     df.loc[df.index[i], "bearish_mitigation"] = True
 
-    return df.drop(columns=["range"], errors='ignore')
+    return df.drop(columns=["range"], errors='ignore').copy()
 
 
 # ============================================================

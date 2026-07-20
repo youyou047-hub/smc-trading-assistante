@@ -196,7 +196,7 @@ def find_fair_value_gaps(
 
             df.loc[df.index[i], "fvg_quality_raw"] = (size_quality * 0.6) + (vol_quality * 0.4)
 
-    return df
+    return df.copy()
 
 
 # ============================================================
@@ -506,7 +506,7 @@ def track_fvg_fill(
         df.loc[idx, "fvg_fill_pct"] = fvg.fill_pct
         df.loc[idx, "fvg_state"] = fvg.state.value
 
-    return df, fvg_list
+    return df.copy(), fvg_list
 
 
 def analyze_fvg(

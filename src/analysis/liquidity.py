@@ -509,7 +509,7 @@ def find_liquidity_sweeps(
 
     # Sort sweeps by most recent first
     sweeps.sort(key=lambda s: s.index, reverse=True)
-    return df, sweeps
+    return df.copy(), sweeps
 
 
 def _score_sweep(sweep_extent: float, level: float, candle_range: float, ref_price: float) -> float:

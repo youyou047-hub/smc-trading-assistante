@@ -167,6 +167,15 @@ def _analyze_single_timeframe(
     df = find_swing_points(df, window=swing_window)
     result = analyze_market_structure(df)
     df = result["df"]
+    
+    # Extract structure points for findings (HH, HL, LH, LL)
+    structure = result.get("structure", {})
+    for label in ["HH", "HL", "LH", "LL"]:
+        df[label] = False
+        if label in structure:
+            for sp in structure[label]:
+                if sp.index < len(df):
+                    df.loc[df.index[sp.index], label] = True
    
 
     # ── 2. Liquidity ──
@@ -179,11 +188,13 @@ def _analyze_single_timeframe(
 
     # ── 4. Order Blocks ──
     df, order_blocks = find_order_blocks(df)
-    df = find_breaker_blocks(df)
+    
+    # Extract swing points for breaker blocks if available
+    swing_highs = [sp.price for sp in result.get("swing_points", ([], []))[0]]
+    swing_lows = [sp.price for sp in result.get("swing_points", ([], []))[1]]
+    
+    df = find_breaker_blocks(df, swing_highs=swing_highs, swing_lows=swing_lows)
     df = find_mitigation_blocks(df)
-
-    breaker_blocks = []
-    mitigation_blocks = []
 
     # ── 5. Premium / Discount Zones ──
     last_sh_idx = df[df["swing_high"]].index[-1] if not df[df["swing_high"]].empty else None
