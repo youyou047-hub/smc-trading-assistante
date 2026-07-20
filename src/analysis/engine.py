@@ -179,8 +179,11 @@ def _analyze_single_timeframe(
 
     # ── 4. Order Blocks ──
     df, order_blocks = find_order_blocks(df)
-    df, breaker_blocks = find_breaker_blocks(df)
-    df, mitigation_blocks = find_mitigation_blocks(df)
+    df = find_breaker_blocks(df)
+    df = find_mitigation_blocks(df)
+
+    breaker_blocks = []
+    mitigation_blocks = []
 
     # ── 5. Premium / Discount Zones ──
     last_sh_idx = df[df["swing_high"]].index[-1] if not df[df["swing_high"]].empty else None
