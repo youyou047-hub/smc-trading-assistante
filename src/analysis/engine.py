@@ -174,7 +174,7 @@ def _analyze_single_timeframe(
     df, liquidity_sweeps = find_liquidity_sweeps(df) 
 
     # ── 3. Fair Value Gaps ──
-    df, fvg_list = find_fair_value_gaps(df)
+    df = find_fair_value_gaps(df)
     df = track_fvg_fill(df)
 
     # ── 4. Order Blocks ──
