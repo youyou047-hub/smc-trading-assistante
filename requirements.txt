@@ -1,8 +1,23 @@
-requests
-pandas
-tenacity
-PyYAML
-matplotlib
-mplfinance
-numpy
-python-dotenv
+# ============================================================
+# Professional AI Trading Analysis System V2.0 - Dependencies
+# ============================================================
+
+# Core HTTP & Data
+requests>=2.31.0
+urllib3>=2.0.0
+pandas>=2.0.0
+numpy>=1.24.0
+
+# Retry & Resilience
+tenacity>=8.2.0
+
+# Configuration & Environment
+PyYAML>=6.0
+python-dotenv>=1.0.0
+
+# Charting
+matplotlib>=3.7.0
+mplfinance>=0.12.10b0
+
+# Logging rotation (stdlib, listed for clarity)
+# logging.handlers (included in Python standard library)

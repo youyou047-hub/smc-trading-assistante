@@ -1,64 +1,128 @@
 # ============================================================
-# Professional AI Trading Analysis System - Configuration
+# Professional AI Trading Analysis System V2.0 - Configuration
 # ============================================================
-# This file contains all configurable settings for the system.
-# Modify values here without changing source code.
+# Institutional-grade Smart Money Concepts analysis system.
+# All parameters are configurable without modifying source code.
 # ============================================================
 
-# --- Trading Symbols & Timeframes ---
+# --- Core System Settings ---
+system:
+  version: "2.0.0"
+  debug_mode: false          # Enable verbose logging with score breakdowns
+  scan_interval_seconds: 60  # How often to scan (in seconds)
+  heartbeat_interval_hours: 5  # Interval for heartbeat messages (Telegram)
+
+# --- Trading Symbols & Multi-Timeframe ---
 trading:
   symbols:
     - "BTCUSDT"
-  timeframes:
-    higher: "1h"       # Higher timeframe for trend determination
-    lower: "15m"       # Lower timeframe for entry confirmation
-  scan_interval_seconds: 60  # How often to scan (in seconds)
+    - "ETHUSDT"
+  primary_timeframe: "15m"   # Main analysis timeframe
+  multi_timeframe:
+    enabled: true
+    macro_tf: "4h"           # Highest TF: determines macro trend direction
+    structural_tf: "1h"      # Validates market structure
+    setup_tf: "15m"          # Locates precise setup zones
+    entry_tf: "5m"           # Confirms entry with precision
+    # Rules: lower TF signals must not contradict higher TF direction
+    contradiction_handling: "filter_out"  # "filter_out" | "reduce_score" | "warn_only"
 
-# --- Binance API ---
-binance:
-  base_url: "https://data-api.binance.vision/api/v3"
-  # Alternative endpoints (uncomment if needed):
-  # base_url: "https://api.binance.com/api/v3"
-  # base_url: "https://api.binance.us/api/v3"
-  kline_limit: 500  # Number of candles to fetch per request
+# --- Market Structure Detection ---
+market_structure:
+  swing_window: 5            # Candles on each side to confirm swing point
+  swing_min_pips: 0.002      # Minimum price movement (as % of price) to qualify as swing
+  structure_type: "both"     # "both" | "internal" | "external"
+  internal_lookback: 20      # Candles for internal structure detection
+  external_lookback: 100     # Candles for external/macro structure detection
+  bos_confirmation:
+    candle_body_close: true  # BOS requires body close beyond swing point
+    wick_only_allowed: false # If true, wick-only breaks count as BOS
+  choch_confirmation:
+    require_opposite_structure: true  # CHoCH requires prior opposite trend
+    min_swing_count: 2       # Minimum swing points in prior trend before CHoCH
 
-# --- Confidence Scoring Weights (must sum to 100) ---
-scoring:
-  weights:
-    market_structure_alignment: 20
-    liquidity_sweep: 20
-    bos_choch_confirmation: 15
-    fair_value_gap: 15
-    fresh_order_block: 10
-    premium_discount_zone: 5
-    confirmation_candle: 5
-    trading_session_quality: 5
-    news_filter: 5
-  thresholds:
-    ignore_below: 70        # Below 70: Ignore completely
-    record_only_min: 70     # 70-79: Record internally for statistics only
-    high_probability_min: 80  # 80-89: Send High Probability Alert
-    premium_min: 90          # 90-100: Send Premium Institutional Setup Alert
+# --- Liquidity Detection ---
+liquidity:
+  equal_levels:
+    threshold_pct: 0.003     # Percentage threshold for "equal" highs/lows (0.3%)
+    lookback_window: 15      # Candles to search for equal levels
+    min_equal_count: 2       # Minimum equal touches to qualify as liquidity zone
+  buy_side:
+    distance_from_high_pct: 0.005  # How close to recent high qualifies as BSL
+  sell_side:
+    distance_from_low_pct: 0.005   # How close to recent low qualifies as SSL
+  sweep_detection:
+    max_wick_pct: 0.01       # Maximum wick size as % of price for sweep validity
+    require_reversal: true   # Sweep candle must close back inside the range
+    min_reversal_pct: 0.001  # Minimum reversal close into the range
 
-# --- Telegram Alert Settings ---
-telegram:
-  enabled: true
-  bot_token: "YOUR_BOT_TOKEN_HERE"
-  chat_id: "YOUR_CHAT_ID_HERE"
+# --- Fair Value Gap (FVG) Detection ---
+fvg:
+  min_gap_pct: 0.003         # Minimum gap size as % of price (ignore insignificant gaps)
+  max_gap_pct: 0.05          # Maximum gap size (above this = anomaly, not FVG)
+  prefer_fresh: true         # Prioritize untouched FVGs over mitigated ones
+  fresh_score_multiplier: 1.5  # Quality multiplier for fresh FVGs
+  mitigate_timeout_candles: 50  # After how many candles FVG is considered expired
+  quality_metrics:
+    body_contribution: 0.6   # How much candle body overlap affects quality
+    volume_contribution: 0.4 # How much above-average volume affects quality
+    min_quality_score: 0.4   # Minimum quality score to consider FVG valid
 
-# --- Economic News Filter ---
-news_filter:
-  enabled: true
-  buffer_minutes: 30  # Minimum buffer before high-impact events
-  high_impact_events:
-    - "CPI"
-    - "PPI"
-    - "NFP"
-    - "FOMC"
-    - "Interest Rate Decision"
-    - "Powell Speech"
-    - "GDP"
-    - "Unemployment Claims"
+# --- Order Block Detection ---
+order_blocks:
+  displacement_multiplier: 2.0  # OB must precede move > N x average candle range
+  min_body_pct: 0.5          # Minimum body ratio (body/range) for OB candle
+  exclude_after_mitigation: true  # Ignore OBs that have been mitigated
+  freshness_window: 30       # Candles within which OB is considered "fresh"
+  fresh_score_multiplier: 1.4  # Quality multiplier for fresh OBs
+  strength_ranking:
+    enabled: true
+    criteria:
+      - "displacement_size"
+      - "body_size"
+      - "volume"
+      - "freshness"
+      - "position_in_structure"
+    weights:
+      displacement_size: 0.30
+      body_size: 0.20
+      volume: 0.20
+      freshness: 0.20
+      position_in_structure: 0.10
+
+# --- Premium / Discount Zones ---
+premium_discount:
+  dealing_range_method: "swing_to_swing"  # "swing_to_swing" | "session_high_low" | "rolling_range"
+  rolling_range_candles: 100  # For rolling_range method
+  premium_start: 0.5          # Above 50% = premium
+  equilibrium: 0.5            # 50% level
+  discount_end: 0.5           # Below 50% = discount
+  optimal_premium: 0.75       # 75% level (ideal sell zone)
+  optimal_discount: 0.25      # 25% level (ideal buy zone)
+  dynamic_range_update: true  # Recalculate range on each new swing point
+
+# --- Confirmation Candles ---
+confirmation_candles:
+  engulfing:
+    min_body_ratio: 1.1      # Engulfing candle body must be > 1.1x previous body
+    min_range_multiplier: 1.2  # Engulfing candle range must be > 1.2x previous range
+  pin_bar:
+    min_wick_body_ratio: 2.5  # Wick must be >= 2.5x body length
+    min_total_range_pct: 0.005  # Pin bar must have meaningful size
+    wick_percentage: 0.67     # Wick must be >= 67% of total candle range
+  rejection:
+    min_wick_body_ratio: 2.0  # Wick must be >= 2x body length
+    min_range_pct: 0.003      # Minimum candle range as % of price
+  displacement:
+    min_body_pct: 0.7         # Body must be >= 70% of total range
+    min_range_vs_avg: 1.5     # Range must be >= 1.5x average range
+    require_volume: true      # Must have above-average volume
+    volume_multiplier: 1.3    # Volume must be >= 1.3x average volume
+  momentum:
+    consecutive_strong_count: 2  # Need 2+ strong candles for momentum confirmation
+    min_close_in_direction: 0.6  # Close must be in top 60% (bullish) or bottom 40% (bearish)
+  rejection_threshold:
+    min_total_score: 0.3     # Minimum combined score to accept as valid confirmation
 
 # --- Trading Sessions (UTC) ---
 sessions:
@@ -72,19 +136,129 @@ sessions:
   asian:
     start: "00:00"
     end: "08:00"
-  # Session quality multipliers
   quality:
     london: 1.0
     new_york: 1.0
-    overlap: 1.0     # London-NY overlap (13:00-16:00 UTC)
+    overlap: 1.0           # London-NY overlap (13:00-16:00 UTC) = highest quality
     asian: 0.7
     off_session: 0.5
+  session_confluence:
+    overlap_bonus: 0.05    # Additional score bonus during overlap sessions
+
+# --- Economic News Filter ---
+news_filter:
+  enabled: true
+  buffer_minutes_before: 30   # Buffer before high-impact events
+  buffer_minutes_after: 30    # Buffer after high-impact events
+  penalty_score: 0.0          # Score multiplier when news is approaching (0 = full penalty)
+  high_impact_events:
+    - "CPI"
+    - "PPI"
+    - "NFP"
+    - "Nonfarm Payrolls"
+    - "FOMC"
+    - "Interest Rate Decision"
+    - "Federal Funds Rate"
+    - "Powell Speech"
+    - "GDP"
+    - "GDP Final"
+    - "Unemployment Claims"
+    - "Unemployment Rate"
+    - "Retail Sales"
+    - "ISM Manufacturing PMI"
+    - "ISM Services PMI"
+  medium_impact_events:
+    - "ADP Employment"
+    - "JOLTS Job Openings"
+    - "Michigan Consumer Sentiment"
+    - "Core PCE"
+    - "Durable Goods"
+
+# --- Confidence Scoring Weights (must sum to 100) ---
+scoring:
+  weights:
+    market_structure_alignment: 20
+    liquidity_sweep: 20
+    bos_choch_confirmation: 15
+    fair_value_gap: 15
+    fresh_order_block: 10
+    premium_discount_zone: 5
+    confirmation_candle: 5
+    trading_session_quality: 5
+    news_filter: 5
+  # Multi-timeframe alignment bonus (adds to final score)
+  mtf_alignment_bonus: 5     # Bonus if lower TF aligns with higher TF
+  mtf_contradiction_penalty: -10  # Penalty if lower TF contradicts higher TF
+
+# --- Alert Tiers ---
+alert_tiers:
+  ignore_below: 60           # Below 60: Ignore completely
+  watchlist_min: 60          # 60-69: Watchlist Alert (incomplete setup)
+  potential_setup_min: 70    # 70-79: Potential Setup (wait for confirmation)
+  high_probability_min: 80   # 80-89: High Probability Setup
+  premium_min: 90            # 90-100: Premium Institutional Setup
+
+# --- Telegram Alert Settings ---
+telegram:
+  enabled: true
+  bot_token: "YOUR_BOT_TOKEN_HERE"
+  chat_id: "YOUR_CHAT_ID_HERE"
+  alert_options:
+    send_watchlist: true     # Send watchlist alerts (60-69)
+    send_potential: true     # Send potential setup alerts (70-79)
+    send_high_prob: true     # Send high probability alerts (80-89)
+    send_premium: true       # Send premium alerts (90-100)
+    include_chart: true      # Attach annotated chart
+    include_breakdown: true  # Include score breakdown in message
+  heartbeat:
+    enabled: true
+    interval_hours: 5
+    include_stats: true      # Include scan count and alert count
+
+# --- Duplicate Alert Prevention ---
+deduplication:
+  enabled: true
+  score_change_threshold: 5    # Resend if score changes by >= 5 points
+  structure_change_resend: true  # Resend if market structure changes
+  direction_change_resend: true  # Resend if direction changes
+  cooldown_minutes: 15         # Minimum cooldown between same alerts
+  max_alerts_per_hour: 3       # Maximum alerts per hour per symbol
+
+# --- Heartbeat & Error Notifications ---
+heartbeat:
+  startup_message: true       # Send message on system startup
+  interval_hours: 5
+  include_scan_count: true
+  include_alert_count: true
+  include_uptime: true
+
+error_notifications:
+  enabled: true
+  events:
+    - "binance_api_unavailable"
+    - "telegram_connection_failed"
+    - "unexpected_exception"
+    - "scanner_stopped"
+    - "automatic_restart"
+    - "recovery_completed"
+
+# --- Statistics Tracking ---
+statistics:
+  enabled: true
+  store_path: "logs/stats.json"
+  record_fields:
+    - "timestamp"
+    - "direction"
+    - "confidence_score"
+    - "reasons"
+    - "outcome"
+  retention_days: 90          # Keep stats for 90 days
 
 # --- Logging ---
 logging:
-  level: "INFO"
+  level: "INFO"              # DEBUG | INFO | WARNING | ERROR
   file: "logs/trading_assistant.log"
-  max_bytes: 10485760  # 10 MB
+  max_bytes: 10485760        # 10 MB
   backup_count: 5
   stats_file: "logs/stats.json"
 
@@ -93,3 +267,14 @@ charts:
   output_dir: "charts"
   theme: "dark"
   figscale: 1.5
+  annotations:
+    market_structure: true
+    bos_choch: true
+    liquidity_zones: true
+    order_blocks: true
+    fair_value_gaps: true
+    premium_discount: true
+    entry_zone: true
+    stop_loss: true
+    take_profit: true
+    reasons_text: true
