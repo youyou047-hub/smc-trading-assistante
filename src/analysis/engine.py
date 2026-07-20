@@ -175,7 +175,7 @@ def _analyze_single_timeframe(
 
     # ── 3. Fair Value Gaps ──
     df = find_fair_value_gaps(df)
-    df = track_fvg_fill(df)
+    df, fvg_list = track_fvg_fill(df)
 
     # ── 4. Order Blocks ──
     df, order_blocks = find_order_blocks(df)
