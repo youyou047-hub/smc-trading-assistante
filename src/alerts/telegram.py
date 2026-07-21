@@ -208,13 +208,18 @@ class TelegramBot:
         logger.error("Failed to send Telegram message.")
         return False
 
-    def send_photo(
+ def send_photo(
         self,
         photo_path: str,
         caption: Optional[str] = None,
         parse_mode: str = "HTML",
     ) -> bool:
         """Send a photo with an optional HTML caption.
+
+        Telegram limits photo captions to 1024 characters. If the caption
+        exceeds this limit, it is truncated for the photo and the full
+        text is sent as a separate follow-up message so no information
+        is lost.
 
         Args:
             photo_path: Absolute or relative path to the image file.
@@ -225,12 +230,24 @@ class TelegramBot:
             ``True`` on success, ``False`` on failure.
         """
         endpoint = f"{self.base_url}/sendPhoto"
+
+        # Telegram's hard limit for photo captions
+        CAPTION_LIMIT = 1024
+        caption_for_photo = caption
+        overflow_text = None
+
+        if caption and len(caption) > CAPTION_LIMIT:
+            # Leave room for a truncation notice
+            cutoff = CAPTION_LIMIT - 40
+            caption_for_photo = caption[:cutoff].rstrip() + "\n\n<i>(تكملة الرسالة أدناه)</i>"
+            overflow_text = caption
+
         payload = {
             "chat_id": self.chat_id,
             "parse_mode": parse_mode,
         }
-        if caption:
-            payload["caption"] = caption
+        if caption_for_photo:
+            payload["caption"] = caption_for_photo
 
         try:
             with open(photo_path, "rb") as photo_file:
@@ -243,11 +260,24 @@ class TelegramBot:
             logger.error("Photo file not found: %s", photo_path)
             return False
 
-        if result and result.get("ok"):
+        success = bool(result and result.get("ok"))
+
+        if success:
             logger.info("Telegram photo '%s' sent successfully.", photo_path)
-            return True
-        logger.error("Failed to send Telegram photo '%s'.", photo_path)
-        return False
+        else:
+            logger.error("Failed to send Telegram photo '%s'.", photo_path)
+            # Fallback: still deliver the full alert as a text message
+            # so the signal isn't lost even if the photo fails.
+            if caption:
+                logger.info("Falling back to text-only alert for %s.", photo_path)
+                success = self.send_message(caption, parse_mode=parse_mode)
+                return success
+
+        # If we had to truncate, send the rest as a follow-up message
+        if success and overflow_text:
+            self.send_message(overflow_text, parse_mode=parse_mode)
+
+        return success
 
     def send_error(self, message: str) -> bool:
         """Send a critical error notification to Telegram.
