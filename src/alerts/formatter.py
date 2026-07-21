@@ -181,11 +181,7 @@ class AlertFormatter:
         parts: List[str] = [
             f"{emoji} <b>{label}</b> {emoji}",
             "",
-            (
-                f"<b>Signal:</b> "
-                f'<span style="color: {direction_color}">'
-                f"{signal_direction}</span>"
-            ),
+            f"<b>Signal:</b> <b>{signal_direction}</b>",
             f"<b>Symbol:</b> {_escape_html(symbol)} | "
             f"<b>TF:</b> {_escape_html(timeframe)}",
         ]
@@ -212,8 +208,7 @@ class AlertFormatter:
         parts.append("")
         parts.append("<b>───────── SCORE ─────────</b>")
         parts.append(
-            f"<b>Confidence:</b> {confidence_score:.1f}% "
-            f'(<span style="color: {color}">{label}</span>)'
+            f"<b>Confidence:</b> {confidence_score:.1f}% ({label})"
         )
 
         # Intelligent breakdown: show ✔ / ✘ when we have raw data
