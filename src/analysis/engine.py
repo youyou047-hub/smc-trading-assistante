@@ -231,53 +231,52 @@ def _analyze_single_timeframe(
 
 
 def _derive_direction(df: pd.DataFrame, timeframe: str, cfg: Dict) -> Optional[str]:
-    """Determine the trade direction from the latest indicators.
+    """Determine trade direction using a weighted, wider lookback window.
 
-    Looks at the most recent bullish / bearish signals across BOS, liquidity
-    sweeps, and FVGs to decide BUY / SELL / None.
-
-    Args:
-        df: Processed DataFrame.
-        timeframe: Interval string.
-        cfg: Analysis config.
-
-    Returns:
-        ``'BUY'``, ``'SELL'``, or ``None``.
+    Instead of requiring an event in the last 3-5 candles only, this scans
+    a wider window and weights more recent events higher — closer to how
+    SMC zones actually stay valid until mitigated or filled.
     """
-    recent_bullish = 0
-    recent_bearish = 0
-
-    # Check for recent BOS
-    for _, row in df.tail(3).iterrows():
-        if row.get("bos_bullish"):
-            recent_bullish += 1
-        if row.get("bos_bearish"):
-            recent_bearish += 1
-        if row.get("choch_bullish"):
-            recent_bullish += 1
-        if row.get("choch_bearish"):
-            recent_bearish += 1
-
-    # Check for recent liquidity sweeps
-    for _, row in df.tail(5).iterrows():
-        if row.get("liquidity_sweep_bullish"):
-            recent_bullish += 1
-        if row.get("liquidity_sweep_bearish"):
-            recent_bearish += 1
-
-    # Check for recent FVGs
-    for _, row in df.tail(5).iterrows():
-        if row.get("fvg_bullish") and not row.get("fvg_filled"):
-            recent_bullish += 1
-        if row.get("fvg_bearish") and not row.get("fvg_filled"):
-            recent_bearish += 1
-
-    if recent_bullish > recent_bearish:
-        return "BUY"
-    elif recent_bearish > recent_bullish:
-        return "SELL"
-    else:
+    lookback = cfg.get("signal_lookback_candles", 30)
+    recent = df.tail(lookback).reset_index(drop=True)
+    n = len(recent)
+    if n == 0:
         return None
+
+    bull_score = 0.0
+    bear_score = 0.0
+
+    for pos, row in recent.iterrows():
+        # More recent candles get higher weight (0.5x -> 1.5x across the window)
+        w = 0.5 + (pos / max(n - 1, 1))
+
+        if row.get("bos_bullish") or row.get("choch_bullish"):
+            bull_score += 2.0 * w
+        if row.get("bos_bearish") or row.get("choch_bearish"):
+            bear_score += 2.0 * w
+
+        if row.get("liquidity_sweep_bullish"):
+            bull_score += 1.5 * w
+        if row.get("liquidity_sweep_bearish"):
+            bear_score += 1.5 * w
+
+        if row.get("fvg_bullish") and not row.get("fvg_filled"):
+            bull_score += 1.0 * w
+        if row.get("fvg_bearish") and not row.get("fvg_filled"):
+            bear_score += 1.0 * w
+
+        if row.get("bullish_ob"):
+            bull_score += 1.0 * w
+        if row.get("bearish_ob"):
+            bear_score += 1.0 * w
+
+    if bull_score == 0 and bear_score == 0:
+        return None
+    if bull_score > bear_score:
+        return "BUY"
+    elif bear_score > bull_score:
+        return "SELL"
+    return None
 
 
 def _collect_findings(
