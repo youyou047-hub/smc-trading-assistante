@@ -208,7 +208,7 @@ class TelegramBot:
         logger.error("Failed to send Telegram message.")
         return False
 
- def send_photo(
+    def send_photo(
         self,
         photo_path: str,
         caption: Optional[str] = None,
@@ -237,7 +237,6 @@ class TelegramBot:
         overflow_text = None
 
         if caption and len(caption) > CAPTION_LIMIT:
-            # Leave room for a truncation notice
             cutoff = CAPTION_LIMIT - 40
             caption_for_photo = caption[:cutoff].rstrip() + "\n\n<i>(تكملة الرسالة أدناه)</i>"
             overflow_text = caption
@@ -266,14 +265,11 @@ class TelegramBot:
             logger.info("Telegram photo '%s' sent successfully.", photo_path)
         else:
             logger.error("Failed to send Telegram photo '%s'.", photo_path)
-            # Fallback: still deliver the full alert as a text message
-            # so the signal isn't lost even if the photo fails.
             if caption:
                 logger.info("Falling back to text-only alert for %s.", photo_path)
                 success = self.send_message(caption, parse_mode=parse_mode)
                 return success
 
-        # If we had to truncate, send the rest as a follow-up message
         if success and overflow_text:
             self.send_message(overflow_text, parse_mode=parse_mode)
 
